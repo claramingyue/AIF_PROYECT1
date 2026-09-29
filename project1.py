@@ -138,7 +138,6 @@ class BFSSearch:
         queue = deque()
         queue_coordinates = set()
         visited: set[State] = set()
-        last_examined = None
 
         def get_coordinates(rotation):
 
@@ -204,7 +203,6 @@ class BFSSearch:
                 )
             ):
                 print("GOAL FOUND")
-                print("Steps:", step_count)
 
                 return Result(
                     None,
@@ -213,7 +211,7 @@ class BFSSearch:
                     len(queue)
                 )
 
-            # Move forward according to the CURRENT orientation
+         
             update_x, update_y = get_coordinates(rotation)
 
             new_x = x + update_x
@@ -232,20 +230,14 @@ class BFSSearch:
                 if new_coordinate not in queue_coordinates:
 
                     queue_coordinates.add(new_coordinate)
-
-                    # This is the important part:
-                    # once we reach a NEW coordinate,
-                    # add ALL 8 orientations of that coordinate.
                     for new_rotation in range(8):
 
-                        # Number of 45° turns needed to get
-                        # from the current orientation to new_rotation
+                        
                         rotation_steps = min(
                             abs(new_rotation - rotation),
                             8 - abs(new_rotation - rotation)
                         )
 
-                        # +1 for the forward movement
                         new_step_count = (
                             step_count
                             + rotation_steps
