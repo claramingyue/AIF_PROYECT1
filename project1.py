@@ -134,132 +134,31 @@ class BFSSearch:
         self.problem = problem
 
     def search(self) -> Result:
-        
-        queue = deque()
-        queue_coordinates = set()
-        visited: set[State] = set()
-
-        def get_coordinates(rotation):
-
-            if rotation == 0:
-                return -1, 0
-            elif rotation == 1:
-                return -1, 1
-            elif rotation == 2:
-                return 0, 1
-            elif rotation == 3:
-                return 1, 1
-            elif rotation == 4:
-                return 1, 0
-            elif rotation == 5:
-                return 1, -1
-            elif rotation == 6:
-                return 0, -1
-            elif rotation == 7:
-                return -1, -1
-
-        for rotation in range(8):
-
-            start_state = {
-                "x": self.problem.start.row,
-                "y": self.problem.start.column,
-                "rotation": rotation
-            }
-
-            queue.append(
-                (start_state, 0)
-            )
-
-        queue_coordinates.add((
-            self.problem.start.row,
-            self.problem.start.column
-        ))         
+        start_node = Node(self.problem.start, None, None, 0, 0)
+        queue = deque([start_node])
+        visited: set[State] = {self.problem.start}   
+        last_examined = None
+           
 
         while queue:
             
-            current, step_count = queue.popleft()
+            current = queue.popleft()
+            last_examined = current
 
-            x = current["x"]
-            y = current["y"]
-            rotation = current["rotation"]
+            print("current state:", format_state(current.state))
 
-            state = (x, y, rotation)
+            if self.problem.is_goal(current.state):
+                return Result(current, last_examined, len(visited), len(queue))
 
-            if state in visited:
-                continue
+            children = self.problem.successors(current)
 
-            visited.add(state)
-
-            print("current_coordinates: ", x, y, rotation)
-
-            if (
-                x == self.problem.goal.row
-                and
-                y == self.problem.goal.column
-                and
-                (
-                    self.problem.goal.orientation == 8
-                    or rotation == self.problem.goal.orientation
-                )
-            ):
-                print("GOAL FOUND")
-
-                return Result(
-                    None,
-                    None,
-                    len(visited),
-                    len(queue)
-                )
-
-         
-            update_x, update_y = get_coordinates(rotation)
-
-            new_x = x + update_x
-            new_y = y + update_y
-
-            # Check if new coordinate is inside the map
-            if (
-                0 <= new_x < len(self.problem.grid)
-                and
-                0 <= new_y < len(self.problem.grid[0])
-            ):
-                new_coordinate = (new_x, new_y)
-
-                # Only create a new epoch if this coordinate
-                # has not been reached before.
-                if new_coordinate not in queue_coordinates:
-
-                    queue_coordinates.add(new_coordinate)
-                    for new_rotation in range(8):
-
-                        
-                        rotation_steps = min(
-                            abs(new_rotation - rotation),
-                            8 - abs(new_rotation - rotation)
-                        )
-
-                        new_step_count = (
-                            step_count
-                            + rotation_steps
-                            + 1
-                        )
-
-                        new_state = {
-                            "x": new_x,
-                            "y": new_y,
-                            "rotation": new_rotation
-                        }
-
-                        queue.append(
-                            (new_state, new_step_count)
-                        )
-
-        return Result(
-            None,
-            None,
-            len(visited),
-            len(queue)
-        )
+            for child in children:
+                if child.state not in visited:
+                    visited.add(child.state)
+                    queue.append(child)          
+        
+        return Result(None,last_examined,len(visited),len(queue))
+    
 # Read the map file and create a Problem with its start and goal states.
 def load_problem(path: str) -> Problem:
     with open(path, encoding="utf-8") as file:
@@ -325,6 +224,7 @@ def show_result(result: Result) -> None:
 
     print(f"Total number of items in explored list: {result.explored}")
     print(f"Total number of items in frontier: {result.frontier}")
+
 
 
 # Parse the command line, run DFS, and show the result.
