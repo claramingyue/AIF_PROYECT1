@@ -145,8 +145,6 @@ class BFSSearch:
             current = queue.popleft()
             last_examined = current
 
-            print("current state:", format_state(current.state))
-
             if self.problem.is_goal(current.state):
                 return Result(current, last_examined, len(visited), len(queue))
 
