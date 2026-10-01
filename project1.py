@@ -32,7 +32,7 @@ class Node:
     action: str | None
     depth: int
     cost: int
-
+   
 
 @dataclass
 class Result:
@@ -227,10 +227,10 @@ def show_result(result: Result) -> None:
 
 # Parse the command line, run DFS, and show the result.
 def main() -> None:
-    # parser = argparse.ArgumentParser(description="Depth-first search on the map")
-    # parser.add_argument("grid", help="Input file, for example exampleMap.txt")
-    # arguments = parser.parse_args()
-    problem = load_problem("exampleMap.txt")
+    parser = argparse.ArgumentParser(description="Depth-first search on the map")
+    parser.add_argument("grid", help="Input file, for example exampleMap.txt")
+    arguments = parser.parse_args()
+    problem = load_problem(arguments.grid)
 
     print("Which algorithm would you like to use? (1) Depth-First (2) Breadth-First (3) A* :")
     choice = input()
