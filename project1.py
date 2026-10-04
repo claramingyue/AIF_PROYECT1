@@ -32,6 +32,7 @@ class Node:
     action: str | None
     depth: int
     cost: int
+    heuristic: int = 0  # Default heuristic value for A* search
    
 
 @dataclass
@@ -156,7 +157,45 @@ class BFSSearch:
                     queue.append(child)          
         
         return Result(None,last_examined,len(visited),len(queue))
-    
+
+class AStarSearch:
+    def __init__(self, problem: Problem):
+        self.problem = problem
+
+    def heuristic(self, state: State) -> int:
+        # Use Chebyshev distance as the heuristic.
+        return max(abs(self.problem.goal.row - state.row), abs(self.problem.goal.column - state.column))
+
+    def search(self) -> Result:
+        start_node = Node(self.problem.start, None, None, 0, 0, self.heuristic(self.problem.start))
+        prioritized_queue = [start_node]
+        visited: set[State] = set()
+        last_examined = None
+
+        #TODO: ensure we are adding to the cost the path cost and the heuristic cost
+        while prioritized_queue:
+            # Sort the prioritized queue based on the total cost (cost + heuristic).
+            prioritized_queue.sort(key=lambda node: node.cost + node.heuristic)
+            current = prioritized_queue.pop(0)
+            last_examined = current
+
+            if current.state in visited:
+                continue
+
+            visited.add(current.state)
+
+            if self.problem.is_goal(current.state):
+                return Result(current, last_examined, len(visited), len(prioritized_queue))
+
+            children = self.problem.successors(current)
+
+            for child in children:
+                if child.state not in visited:
+                    child.heuristic = self.heuristic(child.state)
+                    prioritized_queue.append(child)
+
+        return Result(None, last_examined, len(visited), len(prioritized_queue))
+
 # Read the map file and create a Problem with its start and goal states.
 def load_problem(path: str) -> Problem:
     with open(path, encoding="utf-8") as file:
@@ -205,6 +244,7 @@ def format_state(state: State) -> str:
 
 # Print the route, accumulated costs, and search statistics.
 def show_result(result: Result) -> None:
+    #TODO: Add a check for A* search and print the heuristic value for each node.
     if result.final is None:
         print("No solution found. Path to the last examined node:")
         destination = result.last_examined
@@ -245,6 +285,8 @@ def main() -> None:
         show_result(result)
     elif choice == "3":
         print("You chose A* Search, but it is not implemented yet.")
+        result = AStarSearch(problem).search()
+        show_result(result)
     else:
         print("Invalid choice. Please select 1, 2, or 3.")
 
