@@ -172,7 +172,6 @@ class AStarSearch:
         visited: set[State] = set()
         last_examined = None
 
-        #TODO: ensure we are adding to the cost the path cost and the heuristic cost
         while prioritized_queue:
             # Sort the prioritized queue based on the total cost (cost + heuristic).
             prioritized_queue.sort(key=lambda node: node.cost + node.heuristic)
@@ -243,8 +242,7 @@ def format_state(state: State) -> str:
 
 
 # Print the route, accumulated costs, and search statistics.
-def show_result(result: Result) -> None:
-    #TODO: Add a check for A* search and print the heuristic value for each node.
+def show_result(result: Result, show_heuristic: bool = False) -> None:
     if result.final is None:
         print("No solution found. Path to the last examined node:")
         destination = result.last_examined
@@ -255,10 +253,15 @@ def show_result(result: Result) -> None:
     for index, node in enumerate(reconstruct_path(destination)):
         if index:
             print(f"Operator {index}: {node.action}")
-        print(
-            f"Node {index}: ({node.depth}, {node.cost}, "
-            f"{node.action}, {format_state(node.state)})"
-        )
+
+        if show_heuristic:
+            print(
+                f"Node {index}: ({node.depth}, {node.cost}, {node.action}, {node.heuristic}, {format_state(node.state)})"
+            )
+        else:
+            print(
+                f"Node {index}: ({node.depth}, {node.cost}, {node.action}, {format_state(node.state)})"
+            )
 
     print(f"Total number of items in explored list: {result.explored}")
     print(f"Total number of items in frontier: {result.frontier}")
@@ -284,9 +287,9 @@ def main() -> None:
         result = BFSSearch(problem).search()
         show_result(result)
     elif choice == "3":
-        print("You chose A* Search, but it is not implemented yet.")
+        print("You chose A* Search, and it will now be performed")
         result = AStarSearch(problem).search()
-        show_result(result)
+        show_result(result, show_heuristic=True)
     else:
         print("Invalid choice. Please select 1, 2, or 3.")
 
