@@ -32,6 +32,7 @@ class Node:
     action: str | None
     depth: int
     cost: int
+    heuristic: int = 0  # Default heuristic value for A* search
    
 
 @dataclass
@@ -136,13 +137,15 @@ class BFSSearch:
     def search(self) -> Result:
         start_node = Node(self.problem.start, None, None, 0, 0)
         queue = deque([start_node])
-        visited: set[State] = {self.problem.start}   
+        discovered: set[State] = {self.problem.start}
+        visited: set[State] = set() 
         last_examined = None
            
 
         while queue:
             
             current = queue.popleft()
+            visited.add(current.state)
             last_examined = current
 
             if self.problem.is_goal(current.state):
@@ -151,12 +154,49 @@ class BFSSearch:
             children = self.problem.successors(current)
 
             for child in children:
-                if child.state not in visited:
-                    visited.add(child.state)
+                if child.state not in discovered:
+                    discovered.add(child.state)
                     queue.append(child)          
         
         return Result(None,last_examined,len(visited),len(queue))
-    
+
+class AStarSearch:
+    def __init__(self, problem: Problem):
+        self.problem = problem
+
+    def heuristic(self, state: State) -> int:
+        # Use Chebyshev distance as the heuristic.
+        return max(abs(self.problem.goal.row - state.row), abs(self.problem.goal.column - state.column))
+
+    def search(self) -> Result:
+        start_node = Node(self.problem.start, None, None, 0, 0, self.heuristic(self.problem.start))
+        prioritized_queue = [start_node]
+        visited: set[State] = set()
+        last_examined = None
+
+        while prioritized_queue:
+            # Sort the prioritized queue based on the total cost (cost + heuristic).
+            prioritized_queue.sort(key=lambda node: node.cost + node.heuristic)
+            current = prioritized_queue.pop(0)
+            last_examined = current
+
+            if current.state in visited:
+                continue
+
+            visited.add(current.state)
+
+            if self.problem.is_goal(current.state):
+                return Result(current, last_examined, len(visited), len(prioritized_queue))
+
+            children = self.problem.successors(current)
+
+            for child in children:
+                if child.state not in visited:
+                    child.heuristic = self.heuristic(child.state)
+                    prioritized_queue.append(child)
+
+        return Result(None, last_examined, len(visited), len(prioritized_queue))
+
 # Read the map file and create a Problem with its start and goal states.
 def load_problem(path: str) -> Problem:
     with open(path, encoding="utf-8") as file:
@@ -204,7 +244,7 @@ def format_state(state: State) -> str:
 
 
 # Print the route, accumulated costs, and search statistics.
-def show_result(result: Result) -> None:
+def show_result(result: Result, show_heuristic: bool = False) -> None:
     if result.final is None:
         print("No solution found. Path to the last examined node:")
         destination = result.last_examined
@@ -215,10 +255,15 @@ def show_result(result: Result) -> None:
     for index, node in enumerate(reconstruct_path(destination)):
         if index:
             print(f"Operator {index}: {node.action}")
-        print(
-            f"Node {index}: ({node.depth}, {node.cost}, "
-            f"{node.action}, {format_state(node.state)})"
-        )
+
+        if show_heuristic:
+            print(
+                f"Node {index}: ({node.depth}, {node.cost}, {node.action}, {node.heuristic}, {format_state(node.state)})"
+            )
+        else:
+            print(
+                f"Node {index}: ({node.depth}, {node.cost}, {node.action}, {format_state(node.state)})"
+            )
 
     print(f"Total number of items in explored list: {result.explored}")
     print(f"Total number of items in frontier: {result.frontier}")
@@ -244,7 +289,9 @@ def main() -> None:
         result = BFSSearch(problem).search()
         show_result(result)
     elif choice == "3":
-        print("You chose A* Search, but it is not implemented yet.")
+        print("You chose A* Search, and it will now be performed")
+        result = AStarSearch(problem).search()
+        show_result(result, show_heuristic=True)
     else:
         print("Invalid choice. Please select 1, 2, or 3.")
 
