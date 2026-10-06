@@ -1,46 +1,12 @@
-"""
-Usage: python3 dfs.py exampleMap.txt
-"""
-
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
-from collections import deque
-import linecache
 
+from astar import AStarSearch
+from bfs import BFSSearch
+from dfs import DFSSearch
+from schemas import DIRECTIONS, ORIENTATION_NAMES, Node, Result, State
 
-# Directions are numbered clockwise, starting at north.
-ORIENTATION_NAMES = ("N", "NE", "E", "SE", "S", "SW", "W", "NW")
-DIRECTIONS = (
-    (-1, 0), (-1, 1), (0, 1), (1, 1),
-    (1, 0), (1, -1), (0, -1), (-1, -1),
-)
-
-
-@dataclass(frozen=True)
-class State:
-    row: int
-    column: int
-    orientation: int
-
-
-@dataclass
-class Node:
-    state: State
-    parent: Node | None
-    action: str | None
-    depth: int
-    cost: int
-    heuristic: int = 0  # Default heuristic value for A* search
-   
-
-@dataclass
-class Result:
-    final: Node | None
-    last_examined: Node | None
-    explored: int
-    frontier: int
 
 class Problem:
     # Load and validate the grid and its start and goal states.
@@ -100,103 +66,6 @@ class Problem:
         return children
 
 
-class DFSSearch:
-    def __init__(self, problem: Problem):
-        self.problem = problem
-
-    def search(self) -> Result:
-        # Keep pending nodes on a stack and skip states already examined.
-        start_node = Node(self.problem.start, None, None, 0, 0)
-        stack = [start_node]
-        visited: set[State] = set()
-        last_examined = None
-
-        while stack:
-            current = stack.pop()
-            if current.state in visited:
-                continue
-
-            visited.add(current.state)
-            last_examined = current
-
-            if self.problem.is_goal(current.state):
-                return Result(current, last_examined, len(visited), len(stack))
-
-            # A stack removes the last item first, so add children in reverse order.
-            children = self.problem.successors(current)
-            for child in reversed(children):
-                if child.state not in visited:
-                    stack.append(child)
-
-        return Result(None, last_examined, len(visited), len(stack))
-
-class BFSSearch:
-    def __init__(self, problem: Problem):
-        self.problem = problem
-
-    def search(self) -> Result:
-        start_node = Node(self.problem.start, None, None, 0, 0)
-        queue = deque([start_node])
-        discovered: set[State] = {self.problem.start}
-        visited: set[State] = set() 
-        last_examined = None
-           
-
-        while queue:
-            
-            current = queue.popleft()
-            visited.add(current.state)
-            last_examined = current
-
-            if self.problem.is_goal(current.state):
-                return Result(current, last_examined, len(visited), len(queue))
-
-            children = self.problem.successors(current)
-
-            for child in children:
-                if child.state not in discovered:
-                    discovered.add(child.state)
-                    queue.append(child)          
-        
-        return Result(None,last_examined,len(visited),len(queue))
-
-class AStarSearch:
-    def __init__(self, problem: Problem):
-        self.problem = problem
-
-    def heuristic(self, state: State) -> int:
-        # Use Chebyshev distance as the heuristic.
-        return max(abs(self.problem.goal.row - state.row), abs(self.problem.goal.column - state.column))
-
-    def search(self) -> Result:
-        start_node = Node(self.problem.start, None, None, 0, 0, self.heuristic(self.problem.start))
-        prioritized_queue = [start_node]
-        visited: set[State] = set()
-        last_examined = None
-
-        while prioritized_queue:
-            # Sort the prioritized queue based on the total cost (cost + heuristic).
-            prioritized_queue.sort(key=lambda node: node.cost + node.heuristic)
-            current = prioritized_queue.pop(0)
-            last_examined = current
-
-            if current.state in visited:
-                continue
-
-            visited.add(current.state)
-
-            if self.problem.is_goal(current.state):
-                return Result(current, last_examined, len(visited), len(prioritized_queue))
-
-            children = self.problem.successors(current)
-
-            for child in children:
-                if child.state not in visited:
-                    child.heuristic = self.heuristic(child.state)
-                    prioritized_queue.append(child)
-
-        return Result(None, last_examined, len(visited), len(prioritized_queue))
-
 # Read the map file and create a Problem with its start and goal states.
 def load_problem(path: str) -> Problem:
     with open(path, encoding="utf-8") as file:
@@ -214,7 +83,7 @@ def load_problem(path: str) -> Problem:
             raise ValueError("Incorrect number of columns")
         grid.append(values)
 
-    # Pass the three values separately: row, column, and orientation.
+    # Pass the three values: row, column, and orientation.
     start_line = lines[1 + rows]
     start = State(int(start_line[0]), int(start_line[1]), int(start_line[2]))
 
@@ -269,8 +138,6 @@ def show_result(result: Result, show_heuristic: bool = False) -> None:
     print(f"Total number of items in frontier: {result.frontier}")
 
 
-
-# Parse the command line, run DFS, and show the result.
 def main() -> None:
     parser = argparse.ArgumentParser(description="Depth-first search on the map")
     parser.add_argument("grid", help="Input file, for example exampleMap.txt")
